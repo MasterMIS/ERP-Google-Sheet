@@ -1,0 +1,5 @@
+# Uploaded Images
+
+This directory stores user-uploaded profile pictures.
+
+**Note:** In production, consider using cloud storage (AWS S3, Cloudinary, etc.) instead of local storage.
