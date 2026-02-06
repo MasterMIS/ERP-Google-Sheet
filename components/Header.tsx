@@ -8,6 +8,13 @@ import { ensureSessionId } from '@/utils/session';
 import Icon from './Icon';
 import { useThemeColor } from './ThemeColorProvider';
 
+// Extend window type for nbdDrawerOpen flag
+declare global {
+  interface Window {
+    nbdDrawerOpen?: boolean;
+  }
+}
+
 interface HeaderProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
@@ -279,7 +286,7 @@ export default function Header({ isOpen, setIsOpen }: HeaderProps) {
   return (
     <>
       <motion.header
-        className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-60"
+        className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -630,7 +637,7 @@ export default function Header({ isOpen, setIsOpen }: HeaderProps) {
           <>
             {/* Backdrop */}
             <motion.div
-              className="fixed inset-0 bg-black/50 z-50"
+              className="fixed inset-0 bg-black/50 z-[9997]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -639,7 +646,7 @@ export default function Header({ isOpen, setIsOpen }: HeaderProps) {
 
             {/* Right Slide Modal */}
             <motion.div
-              className="fixed right-0 top-0 bottom-0 w-full sm:w-[480px] bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 w-full sm:w-[480px] bg-white dark:bg-gray-800 shadow-2xl z-[10000] overflow-y-auto"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}

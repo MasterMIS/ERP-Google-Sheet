@@ -25,6 +25,12 @@ export default function LoginPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mousePos = useRef({ x: 0, y: 0 });
 
+  // Custom cursor state
+  const [cursorPos, setCursorPos] = useState({ x: -100, y: -100 });
+  const [cursorTrail, setCursorTrail] = useState<{ x: number; y: number; id: number }[]>([]);
+  const [isHovering, setIsHovering] = useState(false);
+  const trailIdCounter = useRef(0);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -43,10 +49,10 @@ export default function LoginPage() {
     for (let i = 0; i < dotCount; i++) {
       const x = Math.random() * canvas.width;
       const y = Math.random() * canvas.height;
-      dots.push({ 
-        x, 
-        y, 
-        baseX: x, 
+      dots.push({
+        x,
+        y,
+        baseX: x,
         baseY: y,
         vx: (Math.random() - 0.5) * 0.5,
         vy: (Math.random() - 0.5) * 0.5
@@ -80,7 +86,7 @@ export default function LoginPage() {
         // Draw dot with size based on mouse distance
         const size = distance < maxDistance ? 4 + (maxDistance - distance) / 30 : 2;
         const opacity = distance < maxDistance ? 0.8 : 0.3;
-        
+
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255, 193, 7, ${opacity})`;
@@ -129,6 +135,56 @@ export default function LoginPage() {
     };
   }, []);
 
+  // Custom cursor effect
+  useEffect(() => {
+    let lastTrailTime = 0;
+    const trailInterval = 30; // Add trail dot every 30ms
+
+    const updateCursor = (e: MouseEvent) => {
+      const currentTime = Date.now();
+
+      // Update cursor position
+      setCursorPos({ x: e.clientX, y: e.clientY });
+
+      // Add trail dot at intervals
+      if (currentTime - lastTrailTime > trailInterval) {
+        setCursorTrail(prev => {
+          const newTrail = [
+            ...prev,
+            { x: e.clientX, y: e.clientY, id: trailIdCounter.current++ }
+          ];
+          // Keep only last 10 trail dots
+          return newTrail.slice(-10);
+        });
+        lastTrailTime = currentTime;
+      }
+    };
+
+    const handleMouseEnter = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.tagName === 'A') {
+        setIsHovering(true);
+      }
+    };
+
+    const handleMouseLeave = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.tagName === 'A') {
+        setIsHovering(false);
+      }
+    };
+
+    window.addEventListener('mousemove', updateCursor);
+    document.addEventListener('mouseover', handleMouseEnter);
+    document.addEventListener('mouseout', handleMouseLeave);
+
+    return () => {
+      window.removeEventListener('mousemove', updateCursor);
+      document.removeEventListener('mouseover', handleMouseEnter);
+      document.removeEventListener('mouseout', handleMouseLeave);
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -161,10 +217,34 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 cursor-none">
+      {/* Custom Cursor */}
+      <div
+        className="custom-cursor"
+        style={{
+          left: `${cursorPos.x}px`,
+          top: `${cursorPos.y}px`,
+          transform: isHovering ? 'translate(-50%, -50%) scale(2)' : 'translate(-50%, -50%) scale(1)',
+        }}
+      />
+
+      {/* Cursor Trail */}
+      {cursorTrail.map((trail, index) => (
+        <div
+          key={trail.id}
+          className="cursor-trail"
+          style={{
+            left: `${trail.x}px`,
+            top: `${trail.y}px`,
+            opacity: (index + 1) / cursorTrail.length * 0.5,
+            transform: `translate(-50%, -50%) scale(${(index + 1) / cursorTrail.length})`,
+          }}
+        />
+      ))}
+
       {/* Animated Dots Background */}
-      <canvas 
-        ref={canvasRef} 
+      <canvas
+        ref={canvasRef}
         className="absolute inset-0 z-0"
       />
 
@@ -386,6 +466,51 @@ export default function LoginPage() {
       </div>
 
       <style jsx>{`
+        /* Hide default cursor on desktop */
+        @media (pointer: fine) {
+          * {
+            cursor: none !important;
+          }
+        }
+
+        /* Custom cursor styles */
+        :global(.custom-cursor) {
+          position: fixed;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(255, 193, 7, 0.8) 0%, rgba(245, 200, 66, 0.4) 50%, transparent 100%);
+          pointer-events: none;
+          z-index: 9999;
+          transition: transform 0.15s ease-out;
+          box-shadow: 
+            0 0 20px rgba(255, 193, 7, 0.6),
+            0 0 40px rgba(255, 193, 7, 0.3),
+            0 0 60px rgba(255, 193, 7, 0.1);
+        }
+
+        :global(.cursor-trail) {
+          position: fixed;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(255, 193, 7, 0.6) 0%, transparent 70%);
+          pointer-events: none;
+          z-index: 9998;
+          transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+
+        /* Re-enable cursor on mobile */
+        @media (pointer: coarse) {
+          * {
+            cursor: auto !important;
+          }
+          :global(.custom-cursor),
+          :global(.cursor-trail) {
+            display: none;
+          }
+        }
+
         @keyframes float-horizontal {
           0% {
             transform: translateX(0) translateY(0) rotate(0deg);

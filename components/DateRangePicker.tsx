@@ -32,7 +32,7 @@ export default function DateRangePicker({ fromDate, toDate, onRangeChange }: Dat
     const handleDateClick = (date: Date) => {
         // Normalize the date to midnight to avoid time comparison issues
         const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        
+
         if (selectingStart) {
             setStartDate(normalizedDate);
             setEndDate(null);
@@ -80,7 +80,7 @@ export default function DateRangePicker({ fromDate, toDate, onRangeChange }: Dat
         const handleMonthChange = (direction: 'prev' | 'next') => {
             const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + (direction === 'next' ? 1 : -1));
             setCurrentMonth(newDate);
-            
+
             // Sync the other calendar to maintain 1-month gap
             if (isFirst) {
                 const nextMonth = new Date(newDate.getFullYear(), newDate.getMonth() + 1);
@@ -130,12 +130,12 @@ export default function DateRangePicker({ fromDate, toDate, onRangeChange }: Dat
                     {Array.from({ length: daysInMonth }).map((_, i) => {
                         const day = i + 1;
                         const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-                        
+
                         // Create normalized dates for comparison (midnight with no time)
                         const dateTime = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
                         const startTime = startDate ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime() : null;
                         const endTime = endDate ? new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()).getTime() : null;
-                        
+
                         const isStart = startTime && dateTime === startTime;
                         const isEnd = endTime && dateTime === endTime;
                         const isInRange = startTime && endTime && dateTime >= startTime && dateTime <= endTime && !isStart && !isEnd;
@@ -146,11 +146,10 @@ export default function DateRangePicker({ fromDate, toDate, onRangeChange }: Dat
                                 key={day}
                                 type="button"
                                 onClick={() => handleDateClick(date)}
-                                className={`p-2 text-sm rounded-lg transition ${
-                                    isSelected
+                                className={`p-2 text-sm rounded-lg transition ${isSelected
                                         ? 'bg-[var(--theme-primary)] text-gray-900 font-bold shadow-md'
                                         : isInRange
-                                            ? 'bg-[var(--theme-primary)]/40 text-gray-900 dark:text-white font-semibold'
+                                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-gray-900 dark:text-white font-semibold'
                                             : 'hover:bg-[var(--theme-lighter)] dark:hover:bg-gray-700 text-gray-900 dark:text-white'
                                     }`}
                             >

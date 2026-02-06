@@ -13,12 +13,16 @@ const SPREADSHEET_IDS = {
   MOM: '1A7kINXsl513H_NszKbhAosSqmFI-zeYSsEGob94SKPc',
   LEAD_TO_SALES: '1WWAxBcv8czVrThlsEXdxjEYZ674lhfxdiHgMX5KHQAc',
   DEPARTMENTS: '1Om5QWo4iLEGeQkKF5jyEY6YeRUFil8GFkDXdkAifF3I',
+  NBD: '1zR7ak9cKx559fowngKCCkpEddcMxFg4diRbjvHtpsMQ',
+  O2D: '1WYu62z7fWlkyaFbf-YAV_hXkZbbyOrRZ_skT7IGNLec',
 };
 
 // Backward compatibility
 const DELEGATION_SPREADSHEET_ID = SPREADSHEET_IDS.DELEGATION;
 const USERS_SPREADSHEET_ID = SPREADSHEET_IDS.USERS;
 const NOTIFICATIONS_SPREADSHEET_ID = SPREADSHEET_IDS.NOTIFICATIONS;
+const NBD_SPREADSHEET_ID = SPREADSHEET_IDS.NBD;
+const O2D_SPREADSHEET_ID = SPREADSHEET_IDS.O2D;
 
 // Format date as dd/mm/yyyy HH:mm:ss
 function formatDateTime(date: Date): string {
@@ -37,7 +41,11 @@ const SHEETS = {
   DELEGATION_REMARKS: 'delegation_remarks',
   DELEGATION_HISTORY: 'delegation_revision_history',
   USERS: 'users',
-  CHAT_MESSAGES: 'chat_messages'
+  CHAT_MESSAGES: 'chat_messages',
+  NBD: 'NBD',
+  NBD_INCOMING: 'NBD Incoming',
+  CRR: 'CRR',
+  O2D: 'O2D'
 };
 
 // Initialize Google Sheets API client with OAuth
@@ -2811,3 +2819,615 @@ export async function createChatMessage(messageData: any) {
     throw error;
   }
 }
+
+// NBD CRUD OPERATIONS
+
+export async function getNBDs() {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.NBD;
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:Z`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) return [];
+
+    const headers = rows[0];
+    const dataRows = rows.slice(1);
+
+    const nbds = dataRows
+      .map(row => rowToObject(headers, row))
+      .filter(n => n.id)
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+    return nbds;
+  } catch (error) {
+    console.error('Error fetching NBDs:', error);
+    throw error;
+  }
+}
+
+export async function createNBD(data: any) {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.NBD;
+
+    // Check headers
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A1:Z1`,
+    });
+
+    let headers = response.data.values?.[0] || [];
+
+    if (headers.length === 0) {
+      const defaultHeaders = [
+        'id', 'party_name', 'type', 'contact_person', 'email', 'contact_no_1', 'contact_no_2',
+        'location', 'state', 'stage', 'tat_days', 'field_person_name', 'remarks', 'created_at', 'updated_at'
+      ];
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: NBD_SPREADSHEET_ID,
+        range: `${sheetName}!A1:O1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [defaultHeaders] },
+      });
+      headers = defaultHeaders;
+    }
+
+    // Generate ID
+    const allData = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:A`,
+    });
+    const newId = (allData.data.values || []).length;
+
+    const newNBD = {
+      id: newId,
+      ...data,
+      created_at: formatDateTime(new Date()),
+      updated_at: formatDateTime(new Date())
+    };
+
+    const rowData = objectToRow(headers, newNBD);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:Z`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [rowData] },
+    });
+
+    return newNBD;
+  } catch (error) {
+    console.error('Error creating NBD:', error);
+    throw error;
+  }
+}
+
+export async function updateNBD(id: number, data: any) {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.NBD;
+
+    const headersRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A1:Z1`,
+    });
+    const headers = headersRes.data.values?.[0];
+    if (!headers) throw new Error('Headers not found');
+
+    const idRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:A`,
+    });
+    const ids = idRes.data.values || [];
+    const rowIndex = ids.findIndex(row => parseInt(row[0]) == id);
+
+    if (rowIndex === -1) throw new Error('NBD not found');
+    const actualRow = rowIndex + 1;
+
+    // Fetch existing
+    const rowRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A${actualRow}:Z${actualRow}`,
+    });
+    const existing = rowToObject(headers, rowRes.data.values?.[0] || []);
+
+    const updated = {
+      ...existing,
+      ...data,
+      updated_at: formatDateTime(new Date())
+    };
+
+    const rowData = objectToRow(headers, updated);
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A${actualRow}:Z${actualRow}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [rowData] },
+    });
+
+    return updated;
+  } catch (error) {
+    console.error('Error updating NBD:', error);
+    throw error;
+  }
+}
+
+export async function deleteNBD(id: number) {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.NBD;
+
+    const idRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:A`,
+    });
+    const ids = idRes.data.values || [];
+    const rowIndex = ids.findIndex(row => parseInt(row[0]) == id);
+
+    if (rowIndex === -1) throw new Error('NBD not found');
+
+    // Add 1 for 1-based index
+    const actualRow = rowIndex + 1;
+
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      requestBody: {
+        requests: [{
+          deleteDimension: {
+            range: {
+              sheetId: 0, // Assumption: NBD is the first/only sheet.
+              dimension: 'ROWS',
+              startIndex: actualRow - 1,
+              endIndex: actualRow
+            }
+          }
+        }]
+      }
+    });
+
+    return { id };
+  } catch (error) {
+    console.error('Error deleting NBD:', error);
+    throw error;
+  }
+}
+
+// O2D (Order to Delivery) OPERATIONS
+
+export async function createO2DOrder(orderData: any) {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.O2D;
+
+    // Check headers
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: O2D_SPREADSHEET_ID,
+      range: `${sheetName}!A1:Z1`,
+    });
+
+    let headers = response.data.values?.[0] || [];
+
+    if (headers.length === 0) {
+      const defaultHeaders = [
+        'id', 'party_name', 'type', 'contact_person', 'email', 'contact_no_1', 'contact_no_2',
+        'location', 'state', 'field_person_name', 'items', 'created_at'
+      ];
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: O2D_SPREADSHEET_ID,
+        range: `${sheetName}!A1:L1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [defaultHeaders] },
+      });
+      headers = defaultHeaders;
+    }
+
+    // Generate ID
+    const allData = await sheets.spreadsheets.values.get({
+      spreadsheetId: O2D_SPREADSHEET_ID,
+      range: `${sheetName}!A:A`,
+    });
+    const newId = (allData.data.values || []).length;
+
+    // Format items as "Item1: Qty1, Item2: Qty2"
+    const itemsFormatted = orderData.items
+      .map((item: any) => `${item.item}: ${item.qty}`)
+      .join(', ');
+
+    const newOrder = {
+      id: newId,
+      party_name: orderData.party_name,
+      type: orderData.type,
+      contact_person: orderData.contact_person,
+      email: orderData.email,
+      contact_no_1: orderData.contact_no_1,
+      contact_no_2: orderData.contact_no_2,
+      location: orderData.location,
+      state: orderData.state,
+      field_person_name: orderData.field_person_name,
+      items: itemsFormatted,
+      created_at: formatDateTime(new Date())
+    };
+
+    const rowData = objectToRow(headers, newOrder);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: O2D_SPREADSHEET_ID,
+      range: `${sheetName}!A:Z`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [rowData] },
+    });
+
+    return newOrder;
+  } catch (error) {
+    console.error('Error creating O2D order:', error);
+    throw error;
+  }
+}
+
+// Helper for getting sheet ID (required for batchUpdate deleteDimension)
+async function getSheetId(sheets: any, spreadsheetId: string, sheetTitle: string) {
+  const response = await sheets.spreadsheets.get({ spreadsheetId });
+  const sheet = response.data.sheets?.find((s: any) => s.properties?.title === sheetTitle);
+  return sheet?.properties?.sheetId || 0;
+}
+
+// NBD INCOMING CRUD OPERATIONS
+
+export async function getNBDIncomings() {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.NBD_INCOMING;
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:Z`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) return [];
+
+    const headers = rows[0];
+    const dataRows = rows.slice(1);
+
+    const nbds = dataRows
+      .map(row => rowToObject(headers, row))
+      .filter(n => n.id)
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+    return nbds;
+  } catch (error) {
+    console.error('Error fetching NBD Incomings:', error);
+    throw error;
+  }
+}
+
+export async function createNBDIncoming(data: any) {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.NBD_INCOMING;
+
+    // Check headers
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A1:Z1`,
+    });
+
+    let headers = response.data.values?.[0] || [];
+
+    if (headers.length === 0) {
+      const defaultHeaders = [
+        'id', 'party_name', 'type', 'contact_person', 'email', 'contact_no_1', 'contact_no_2',
+        'location', 'state', 'stage', 'tat_days', 'field_person_name', 'remarks', 'created_at', 'updated_at'
+      ];
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: NBD_SPREADSHEET_ID,
+        range: `${sheetName}!A1:O1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [defaultHeaders] },
+      });
+      headers = defaultHeaders;
+    }
+
+    // Generate ID
+    const allData = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:A`,
+    });
+    const newId = (allData.data.values || []).length;
+
+    const newNBD = {
+      id: newId,
+      ...data,
+      created_at: formatDateTime(new Date()),
+      updated_at: formatDateTime(new Date())
+    };
+
+    const rowData = objectToRow(headers, newNBD);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:Z`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [rowData] },
+    });
+
+    return newNBD;
+  } catch (error) {
+    console.error('Error creating NBD Incoming:', error);
+    throw error;
+  }
+}
+
+export async function updateNBDIncoming(id: number, data: any) {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.NBD_INCOMING;
+
+    const headersRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A1:Z1`,
+    });
+    const headers = headersRes.data.values?.[0];
+    if (!headers) throw new Error('Headers not found');
+
+    const idRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:A`,
+    });
+    const ids = idRes.data.values || [];
+    const rowIndex = ids.findIndex(row => parseInt(row[0]) == id);
+
+    if (rowIndex === -1) throw new Error('NBD Incoming not found');
+    const actualRow = rowIndex + 1;
+
+    // Fetch existing
+    const rowRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A${actualRow}:Z${actualRow}`,
+    });
+    const existing = rowToObject(headers, rowRes.data.values?.[0] || []);
+
+    const updated = {
+      ...existing,
+      ...data,
+      updated_at: formatDateTime(new Date())
+    };
+
+    const rowData = objectToRow(headers, updated);
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A${actualRow}:Z${actualRow}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [rowData] },
+    });
+
+    return updated;
+  } catch (error) {
+    console.error('Error updating NBD Incoming:', error);
+    throw error;
+  }
+}
+
+export async function deleteNBDIncoming(id: number) {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.NBD_INCOMING;
+
+    const idRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:A`,
+    });
+    const ids = idRes.data.values || [];
+    const rowIndex = ids.findIndex(row => parseInt(row[0]) == id);
+
+    if (rowIndex === -1) throw new Error('NBD Incoming not found');
+
+    const actualRow = rowIndex + 1;
+
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      requestBody: {
+        requests: [{
+          deleteDimension: {
+            range: {
+              sheetId: await getSheetId(sheets, NBD_SPREADSHEET_ID, sheetName),
+              dimension: 'ROWS',
+              startIndex: actualRow - 1,
+              endIndex: actualRow
+            }
+          }
+        }]
+      }
+    });
+
+    return { id };
+  } catch (error) {
+    console.error('Error deleting NBD Incoming:', error);
+    throw error;
+  }
+}
+
+// CRR CRUD OPERATIONS
+
+export async function getCRRs() {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.CRR;
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:Z`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) return [];
+
+    const headers = rows[0];
+    const dataRows = rows.slice(1);
+
+    const crrs = dataRows
+      .map(row => rowToObject(headers, row))
+      .filter(n => n.id)
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+    return crrs;
+  } catch (error) {
+    console.error('Error fetching CRRs:', error);
+    throw error;
+  }
+}
+
+export async function createCRR(data: any) {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.CRR;
+
+    // Check headers
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A1:Z1`,
+    });
+
+    let headers = response.data.values?.[0] || [];
+
+    if (headers.length === 0) {
+      const defaultHeaders = [
+        'id', 'party_name', 'type', 'contact_person', 'email', 'contact_no_1', 'contact_no_2',
+        'location', 'state', 'stage', 'tat_days', 'field_person_name', 'remarks', 'created_at', 'updated_at'
+      ];
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: NBD_SPREADSHEET_ID,
+        range: `${sheetName}!A1:O1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [defaultHeaders] },
+      });
+      headers = defaultHeaders;
+    }
+
+    // Generate ID
+    const allData = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:A`,
+    });
+    const newId = (allData.data.values || []).length;
+
+    const newCRR = {
+      id: newId,
+      ...data,
+      created_at: formatDateTime(new Date()),
+      updated_at: formatDateTime(new Date())
+    };
+
+    const rowData = objectToRow(headers, newCRR);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:Z`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [rowData] },
+    });
+
+    return newCRR;
+  } catch (error) {
+    console.error('Error creating CRR:', error);
+    throw error;
+  }
+}
+
+export async function updateCRR(id: number, data: any) {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.CRR;
+
+    const headersRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A1:Z1`,
+    });
+    const headers = headersRes.data.values?.[0];
+    if (!headers) throw new Error('Headers not found');
+
+    const idRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:A`,
+    });
+    const ids = idRes.data.values || [];
+    const rowIndex = ids.findIndex(row => parseInt(row[0]) == id);
+
+    if (rowIndex === -1) throw new Error('CRR not found');
+    const actualRow = rowIndex + 1;
+
+    // Fetch existing
+    const rowRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A${actualRow}:Z${actualRow}`,
+    });
+    const existing = rowToObject(headers, rowRes.data.values?.[0] || []);
+
+    const updated = {
+      ...existing,
+      ...data,
+      updated_at: formatDateTime(new Date())
+    };
+
+    const rowData = objectToRow(headers, updated);
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A${actualRow}:Z${actualRow}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [rowData] },
+    });
+
+    return updated;
+  } catch (error) {
+    console.error('Error updating CRR:', error);
+    throw error;
+  }
+}
+
+export async function deleteCRR(id: number) {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetName = SHEETS.CRR;
+
+    const idRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      range: `${sheetName}!A:A`,
+    });
+    const ids = idRes.data.values || [];
+    const rowIndex = ids.findIndex(row => parseInt(row[0]) == id);
+
+    if (rowIndex === -1) throw new Error('CRR not found');
+
+    const actualRow = rowIndex + 1;
+
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: NBD_SPREADSHEET_ID,
+      requestBody: {
+        requests: [{
+          deleteDimension: {
+            range: {
+              sheetId: await getSheetId(sheets, NBD_SPREADSHEET_ID, sheetName),
+              dimension: 'ROWS',
+              startIndex: actualRow - 1,
+              endIndex: actualRow
+            }
+          }
+        }]
+      }
+    });
+
+    return { id };
+  } catch (error) {
+    console.error('Error deleting CRR:', error);
+    throw error;
+  }
+}
+

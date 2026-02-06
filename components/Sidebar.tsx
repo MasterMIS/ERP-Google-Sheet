@@ -1,31 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
 }
 
+interface MenuItem {
+  label: string;
+  icon: string;
+  href?: string;
+  roles: string[];
+  children?: MenuItem[];
+}
+
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const pathname = usePathname();
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     { label: 'Dashboard', icon: 'chart', href: '/dashboard', roles: ['Admin', 'Manager', 'Employee'] },
-    { label: 'Delegations', icon: 'clipboard', href: '/delegation', roles: ['Admin', 'Manager'] },
-    { label: 'Checklist', icon: 'checklist', href: '/checklist', roles: ['Admin', 'Manager'] },
-    { label: 'Todo', icon: 'check', href: '/todo', roles: ['Admin', 'Manager', 'Employee'] },
+    {
+      label: 'Tasks', icon: 'clipboard', roles: ['Admin', 'Manager', 'Employee'], children: [
+        { label: 'Delegations', icon: 'clipboard', href: '/delegation', roles: ['Admin', 'Manager'] },
+        { label: 'Checklist', icon: 'checklist', href: '/checklist', roles: ['Admin', 'Manager'] },
+        { label: 'Todo', icon: 'check', href: '/todo', roles: ['Admin', 'Manager', 'Employee'] },
+      ]
+    },
     { label: 'MOM', icon: 'document', href: '/mom', roles: ['Admin', 'Manager'] },
     { label: 'Lead to Sales', icon: 'trending', href: '/lead-to-sales', roles: ['Admin', 'Manager', 'Employee'] },
+    {
+      label: 'Sales', icon: 'currency-dollar', roles: ['Admin', 'Manager'], children: [
+        { label: 'NBD', icon: 'clipboard', href: '/nbd', roles: ['Admin', 'Manager'] },
+        { label: 'NBD Incoming', icon: 'clipboard', href: '/nbd-incoming', roles: ['Admin', 'Manager'] },
+        { label: 'CRR', icon: 'clipboard', href: '/crr', roles: ['Admin', 'Manager'] },
+      ]
+    },
     { label: 'HelpDesk', icon: 'headset', href: '/helpdesk', roles: ['Admin', 'Manager', 'Employee'] },
     { label: 'Users', icon: 'users', href: '/users', roles: ['Admin'] },
     { label: 'Chat', icon: 'message', href: '/chat', roles: ['Admin', 'Manager', 'Employee'] },
   ];
 
   const getIcon = (iconName: string) => {
-    switch(iconName) {
+    switch (iconName) {
       case 'chart':
         return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>;
       case 'clipboard':
@@ -46,28 +66,61 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
       case 'trending':
         return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>;
+      case 'currency-dollar':
+        return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
       default:
         return null;
     }
   };
 
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href?: string) => href ? pathname === href : false;
+
+  // Initialize expandedMenus based on current path
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(() => {
+    const activeParent = menuItems.find(item =>
+      item.children?.some(child => child.href && isActive(child.href))
+    );
+
+    if (activeParent) {
+      return [activeParent.label];
+    }
+    return ['Sales']; // Fallback default
+  });
+
+  const isMenuExpanded = (label: string) => expandedMenus.includes(label);
+
+  const toggleMenu = (label: string) => {
+    setExpandedMenus(prev =>
+      prev.includes(label)
+        ? prev.filter(item => item !== label)
+        : [...prev, label]
+    );
+  };
+
+  // Keep expanded state in sync with external navigation
+  useEffect(() => {
+    const activeParent = menuItems.find(item =>
+      item.children?.some(child => child.href && isActive(child.href))
+    );
+    if (activeParent && !expandedMenus.includes(activeParent.label)) {
+      setExpandedMenus(prev => [...prev, activeParent.label]);
+    }
+  }, [pathname]);
 
   return (
     <>
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-[70] lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-screen bg-[var(--theme-light)] dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300 z-50 ${
-          isOpen ? 'w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'
-        } lg:relative lg:z-auto shadow-lg`}
+        className={`fixed left-0 top-0 h-screen bg-[var(--theme-light)] dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300 z-[80] ${isOpen ? 'w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'
+          } lg:relative lg:z-auto shadow-lg`}
       >
         {/* Logo Section */}
         <div className="p-4">
@@ -81,21 +134,89 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
         {/* Menu Items */}
         <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100vh-80px)]">
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 ${
-                isActive(item.href)
+          {menuItems.map((item) => {
+            if (item.children) {
+              const expanded = isMenuExpanded(item.label);
+              // Check if any child is active
+              const hasActiveChild = item.children.some(child => child.href && isActive(child.href));
+
+              return (
+                <div key={item.label} className="space-y-1">
+                  <button
+                    onClick={() => {
+                      if (!isOpen) setIsOpen(true);
+                      toggleMenu(item.label);
+                    }}
+                    className={`w-full flex items-center justify-between gap-4 px-4 py-3 rounded-xl transition-all duration-200 ${hasActiveChild || expanded
+                      ? 'bg-[var(--theme-primary)]/10 text-[var(--theme-primary)] font-semibold'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-[var(--theme-primary)]/20 dark:hover:bg-gray-700'
+                      }`}
+                    title={!isOpen ? item.label : ''}
+                  >
+                    <div className="flex items-center gap-4">
+                      {getIcon(item.icon)}
+                      {isOpen && <span className="font-medium">{item.label}</span>}
+                    </div>
+                    {isOpen && (
+                      <svg
+                        className={`w-4 h-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                  </button>
+
+                  <AnimatePresence>
+                    {isOpen && expanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pl-4 space-y-1">
+                          {item.children.map(child => (
+                            <Link
+                              key={child.label}
+                              href={child.href || '#'}
+                              className={`flex items-center gap-4 px-4 py-2.5 rounded-xl transition-all duration-200 text-sm ${isActive(child.href)
+                                ? 'bg-[var(--theme-primary)] text-gray-900 shadow-sm font-semibold'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-[var(--theme-primary)]/20 dark:hover:bg-gray-700'
+                                }`}
+                            >
+                              <div className="w-5 flex justify-center">
+                                <div className={`w-1.5 h-1.5 rounded-full ${isActive(child.href) ? 'bg-gray-900' : 'bg-gray-400'}`} />
+                              </div>
+                              <span className="font-medium">{child.label}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href || '#'}
+                className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 ${isActive(item.href)
                   ? 'bg-[var(--theme-primary)] text-gray-900 shadow-md font-semibold'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-[var(--theme-primary)]/20 dark:hover:bg-gray-700'
-              }`}
-              title={!isOpen ? item.label : ''}
-            >
-              {getIcon(item.icon)}
-              {isOpen && <span className="font-medium">{item.label}</span>}
-            </Link>
-          ))}
+                  }`}
+                title={!isOpen ? item.label : ''}
+              >
+                {getIcon(item.icon)}
+                {isOpen && <span className="font-medium">{item.label}</span>}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Settings - Bottom */}
@@ -115,4 +236,3 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     </>
   );
 }
-
