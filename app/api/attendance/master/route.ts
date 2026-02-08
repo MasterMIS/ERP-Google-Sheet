@@ -30,8 +30,17 @@ const parseSheetDate = (dateStr: string) => {
         if (!datePart) return null;
         const [d, m, y] = datePart.split('/').map(Number);
         let h = 0, min = 0, s = 0;
-        if (timePart) [h, min, s] = timePart.split(':').map(Number);
-        const dateObj = new Date(y, m - 1, d, h || 0, min || 0, s || 0);
+        if (timePart) {
+            const parts = timePart.split(':').map(Number);
+            h = parts[0] || 0;
+            min = parts[1] || 0;
+            s = parts[2] || 0;
+        }
+
+        // Construct an ISO-like string with IST offset (+05:30)
+        // This ensures the server (likely UTC) parses it as IST
+        const isoStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}:${String(s).padStart(2, '0')}+05:30`;
+        const dateObj = new Date(isoStr);
         return isNaN(dateObj.getTime()) ? null : dateObj.toISOString();
     } catch (e) {
         return null;
