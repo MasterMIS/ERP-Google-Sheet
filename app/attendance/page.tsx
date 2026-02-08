@@ -366,9 +366,35 @@ export default function AttendancePage() {
                                 <div className="absolute top-0 left-0 w-full h-1 bg-[var(--theme-primary)]"></div>
                                 <h3 className="text-gray-600 dark:text-gray-400 uppercase text-xs font-black mb-3 tracking-widest">Global Work System</h3>
                                 <div className="text-6xl font-mono font-black text-gray-900 dark:text-white mb-8 tabular-nums drop-shadow-sm tracking-tighter">{elapsedTime}</div>
-                                {currentStatus === 'IDLE' && <button onClick={() => handleAction('CHECK_IN')} className="w-full py-5 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-black text-lg shadow-lg shadow-green-500/30 transition-all transform hover:scale-[1.02] active:scale-95">Check In System</button>}
-                                {currentStatus === 'CHECKED_IN' && <button onClick={() => handleAction('CHECK_OUT')} className="w-full py-5 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-lg shadow-lg shadow-red-500/30 transition-all transform hover:scale-[1.02] active:scale-95 animate-pulse">Deactivate Link</button>}
-                                {currentStatus === 'COMPLETED' && <div className="mt-4 text-green-600 font-black text-lg bg-green-50 py-4 rounded-xl border border-green-100 dark:bg-green-900/20 dark:border-green-800">Mission Accomplished ✅</div>}
+                                {(() => {
+                                    const today = new Date();
+                                    const isSunday = today.getDay() === 0;
+                                    const todayISO = today.toISOString().split('T')[0];
+                                    const isOnLeave = leaves.some(l => l.status === 'Approved' && todayISO >= l.startDate && todayISO <= l.endDate);
+                                    const isRestricted = isSunday || isOnLeave;
+                                    const restrictionReason = isSunday ? "System Restricted on Sunday" : "System Restricted during Leave";
+
+                                    if (isRestricted && currentStatus !== 'COMPLETED') {
+                                        return (
+                                            <div className="mt-4 p-5 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-700">
+                                                <div className="text-[var(--theme-primary)] mb-2 group-hover:animate-bounce">
+                                                    <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2-2h-2m8-3V7a4 4 0 00-8 0v4M5 11h14a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2z" /></svg>
+                                                </div>
+                                                <div className="font-black text-xs text-gray-400 uppercase tracking-widest leading-relaxed">
+                                                    {restrictionReason}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <>
+                                            {currentStatus === 'IDLE' && <button onClick={() => handleAction('CHECK_IN')} className="w-full py-5 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-black text-lg shadow-lg shadow-green-500/30 transition-all transform hover:scale-[1.02] active:scale-95">Check In System</button>}
+                                            {currentStatus === 'CHECKED_IN' && <button onClick={() => handleAction('CHECK_OUT')} className="w-full py-5 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-lg shadow-lg shadow-red-500/30 transition-all transform hover:scale-[1.02] active:scale-95 animate-pulse">Deactivate Link</button>}
+                                            {currentStatus === 'COMPLETED' && <div className="mt-4 text-green-600 font-black text-lg bg-green-50 py-4 rounded-xl border border-green-100 dark:bg-green-900/20 dark:border-green-800">Mission Accomplished ✅</div>}
+                                        </>
+                                    );
+                                })()}
                             </div>
 
                             <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-6 flex-grow border border-gray-100 dark:border-slate-700">
