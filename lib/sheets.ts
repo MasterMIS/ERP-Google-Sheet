@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import { getGoogleSheetsClient as getOAuthSheetsClient } from './oauth';
 
 // Spreadsheet IDs for different features
-const SPREADSHEET_IDS = {
+export const SPREADSHEET_IDS = {
   DELEGATION: '1m0H-RXY1lwvY1DKur7-JwUI-FfxLZv7KWPI7HJWlYhM',
   USERS: '1lYFGRBv0FgN2tQuakbpI5GYY8h8M8jUptGW-z8l9g_4',
   TODOS: '1wqMwWLFyEDUUvTI3CrVyFXemLnTYcTf7JVxcZhCLHO0',
@@ -15,6 +15,7 @@ const SPREADSHEET_IDS = {
   DEPARTMENTS: '1Om5QWo4iLEGeQkKF5jyEY6YeRUFil8GFkDXdkAifF3I',
   NBD: '1zR7ak9cKx559fowngKCCkpEddcMxFg4diRbjvHtpsMQ',
   O2D: '1WYu62z7fWlkyaFbf-YAV_hXkZbbyOrRZ_skT7IGNLec',
+  ATTENDANCE: '1OVAwEgudNS5aaFxaL7YjLaRcxsvhVzMAXG-f2DbGj8I',
 };
 
 // Backward compatibility
@@ -23,6 +24,7 @@ const USERS_SPREADSHEET_ID = SPREADSHEET_IDS.USERS;
 const NOTIFICATIONS_SPREADSHEET_ID = SPREADSHEET_IDS.NOTIFICATIONS;
 const NBD_SPREADSHEET_ID = SPREADSHEET_IDS.NBD;
 const O2D_SPREADSHEET_ID = SPREADSHEET_IDS.O2D;
+const ATTENDANCE_SPREADSHEET_ID = SPREADSHEET_IDS.ATTENDANCE;
 
 // Format date as dd/mm/yyyy HH:mm:ss
 function formatDateTime(date: Date): string {
@@ -45,7 +47,9 @@ const SHEETS = {
   NBD: 'NBD',
   NBD_INCOMING: 'NBD Incoming',
   CRR: 'CRR',
-  O2D: 'O2D'
+  O2D: 'O2D',
+  ATTENDANCE: 'Sheet1',
+  LEAVE_REMARK: 'leave_remark'
 };
 
 // Initialize Google Sheets API client with OAuth

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface CustomDateTimePickerProps {
@@ -103,217 +104,220 @@ export default function CustomDateTimePicker({
                 </svg>
             </button>
 
-            <AnimatePresence>
-                {showPicker && (
-                    <>
-                        <motion.div
-                            className="fixed inset-0 bg-black/50 z-[60]"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowPicker(false)}
-                        />
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {showPicker && (
+                        <>
+                            <motion.div
+                                className="fixed inset-0 bg-black/50 z-[9998]"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowPicker(false)}
+                            />
 
-                        <motion.div
-                            className={`fixed top-1/2 left-1/2 z-[70] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 flex flex-col md:flex-row gap-6 max-h-[90vh] overflow-y-auto ${dateOnly ? 'w-auto' : ''}`}
-                            initial={{ opacity: 0, scale: 0.9, x: '-50%', y: '-50%' }}
-                            animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
-                            exit={{ opacity: 0, scale: 0.9, x: '-50%', y: '-50%' }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Calendar */}
-                            <div className="w-80">
-                                <div className="flex items-center justify-between mb-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))}
-                                        className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg transition"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                    </button>
-                                    <span className="font-bold text-lg text-gray-900 dark:text-white">
-                                        {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))}
-                                        className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg transition"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </button>
-                                </div>
+                            <motion.div
+                                className={`fixed top-1/2 left-1/2 z-[9999] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 flex flex-col md:flex-row gap-6 max-h-[90vh] overflow-y-auto ${dateOnly ? 'w-auto' : ''}`}
+                                initial={{ opacity: 0, scale: 0.9, x: '-50%', y: '-50%' }}
+                                animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                                exit={{ opacity: 0, scale: 0.9, x: '-50%', y: '-50%' }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* Calendar */}
+                                <div className="w-80">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))}
+                                            className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg transition"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                            </svg>
+                                        </button>
+                                        <span className="font-bold text-lg text-gray-900 dark:text-white">
+                                            {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))}
+                                            className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg transition"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </button>
+                                    </div>
 
-                                <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-500 uppercase mb-2">
-                                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                                        <div key={day} className="py-2">{day}</div>
-                                    ))}
-                                </div>
+                                    <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-500 uppercase mb-2">
+                                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                                            <div key={day} className="py-2">{day}</div>
+                                        ))}
+                                    </div>
 
-                                <div className="grid grid-cols-7 gap-1">
-                                    {Array.from({ length: getFirstDayOfMonth(selectedDate) }).map((_, i) => (
-                                        <div key={`empty-${i}`} />
-                                    ))}
-                                    {Array.from({ length: getDaysInMonth(selectedDate) }).map((_, i) => {
-                                        const day = i + 1;
-                                        const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day);
-                                        const isSelected = selectedDate.getDate() === day;
-                                        const isToday = new Date().toDateString() === date.toDateString();
+                                    <div className="grid grid-cols-7 gap-1">
+                                        {Array.from({ length: getFirstDayOfMonth(selectedDate) }).map((_, i) => (
+                                            <div key={`empty-${i}`} />
+                                        ))}
+                                        {Array.from({ length: getDaysInMonth(selectedDate) }).map((_, i) => {
+                                            const day = i + 1;
+                                            const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day);
+                                            const isSelected = selectedDate.getDate() === day;
+                                            const isToday = new Date().toDateString() === date.toDateString();
 
-                                        return (
+                                            return (
+                                                <button
+                                                    key={day}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const newDate = new Date(selectedDate);
+                                                        newDate.setDate(day);
+                                                        setSelectedDate(newDate);
+                                                    }}
+                                                    className={`p-2.5 text-sm rounded-xl transition-all ${isSelected
+                                                        ? 'bg-[var(--theme-primary)] text-gray-900 font-bold shadow-lg'
+                                                        : isToday
+                                                            ? 'bg-[var(--theme-primary)]/20 text-[var(--theme-primary)] font-bold border border-[var(--theme-primary)]'
+                                                            : 'hover:bg-[var(--theme-primary)]/10 text-gray-900 dark:text-white'
+                                                        }`}
+                                                >
+                                                    {day}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {dateOnly && (
+                                        <div className="flex gap-3 mt-6">
                                             <button
-                                                key={day}
                                                 type="button"
-                                                onClick={() => {
-                                                    const newDate = new Date(selectedDate);
-                                                    newDate.setDate(day);
-                                                    setSelectedDate(newDate);
-                                                }}
-                                                className={`p-2.5 text-sm rounded-xl transition-all ${isSelected
-                                                    ? 'bg-[var(--theme-primary)] text-gray-900 font-bold shadow-lg'
-                                                    : isToday
-                                                        ? 'bg-[var(--theme-primary)]/20 text-[var(--theme-primary)] font-bold border border-[var(--theme-primary)]'
-                                                        : 'hover:bg-[var(--theme-primary)]/10 text-gray-900 dark:text-white'
-                                                    }`}
+                                                onClick={() => setShowPicker(false)}
+                                                className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-white font-bold rounded-xl transition"
                                             >
-                                                {day}
+                                                Cancel
                                             </button>
-                                        );
-                                    })}
+                                            <button
+                                                type="button"
+                                                onClick={handleDateTimeSet}
+                                                className="flex-[2] py-3 bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-secondary)] hover:from-[var(--theme-secondary)] hover:to-[var(--theme-tertiary)] text-gray-900 font-black rounded-xl shadow-lg transition"
+                                            >
+                                                Set Date
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {dateOnly && (
-                                    <div className="flex gap-3 mt-6">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPicker(false)}
-                                            className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-white font-bold rounded-xl transition"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleDateTimeSet}
-                                            className="flex-[2] py-3 bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-secondary)] hover:from-[var(--theme-secondary)] hover:to-[var(--theme-tertiary)] text-gray-900 font-black rounded-xl shadow-lg transition"
-                                        >
-                                            Set Date
-                                        </button>
+                                {/* Clock Time Picker */}
+                                {!dateOnly && (
+                                    <div className="w-80 md:border-l border-gray-200 dark:border-gray-700 md:pl-6 pt-6 md:pt-0">
+                                        <div className="text-center mb-6">
+                                            <span className="text-3xl font-black text-gray-900 dark:text-white tracking-wider">
+                                                {selectedHour.toString().padStart(2, '0')}:{selectedMinute.toString().padStart(2, '0')} {selectedPeriod}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex gap-4 justify-center items-center mb-8">
+                                            {/* Hour Selector */}
+                                            <div className="flex flex-col items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedHour(selectedHour === 12 ? 1 : selectedHour + 1)}
+                                                    className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg"
+                                                >
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                                    </svg>
+                                                </button>
+                                                <div className="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-2xl shadow-inner">
+                                                    <span className="text-3xl font-bold text-gray-900 dark:text-white">{selectedHour.toString().padStart(2, '0')}</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedHour(selectedHour === 1 ? 12 : selectedHour - 1)}
+                                                    className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg"
+                                                >
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+
+                                            <span className="text-4xl font-black text-gray-400 self-center">:</span>
+
+                                            {/* Minute Selector */}
+                                            <div className="flex flex-col items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedMinute((selectedMinute + 15) % 60)}
+                                                    className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg"
+                                                >
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                                    </svg>
+                                                </button>
+                                                <div className="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-2xl shadow-inner">
+                                                    <span className="text-3xl font-bold text-gray-900 dark:text-white">{selectedMinute.toString().padStart(2, '0')}</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedMinute(selectedMinute === 0 ? 45 : selectedMinute - 15)}
+                                                    className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg"
+                                                >
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+
+                                            {/* AM/PM Selector */}
+                                            <div className="flex flex-col gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedPeriod('AM')}
+                                                    className={`px-4 py-3 rounded-xl font-bold shadow-sm transition ${selectedPeriod === 'AM'
+                                                        ? 'bg-[var(--theme-primary)] text-gray-900'
+                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                        }`}
+                                                >
+                                                    AM
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedPeriod('PM')}
+                                                    className={`px-4 py-3 rounded-xl font-bold shadow-sm transition ${selectedPeriod === 'PM'
+                                                        ? 'bg-[var(--theme-primary)] text-gray-900'
+                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                        }`}
+                                                >
+                                                    PM
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPicker(false)}
+                                                className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-white font-bold rounded-xl transition"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleDateTimeSet}
+                                                className="flex-[2] py-3 bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-secondary)] hover:from-[var(--theme-secondary)] hover:to-[var(--theme-tertiary)] text-gray-900 font-black rounded-xl shadow-lg transition"
+                                            >
+                                                Set Date & Time
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
-                            </div>
-
-                            {/* Clock Time Picker */}
-                            {!dateOnly && (
-                                <div className="w-80 md:border-l border-gray-200 dark:border-gray-700 md:pl-6 pt-6 md:pt-0">
-                                    <div className="text-center mb-6">
-                                        <span className="text-3xl font-black text-gray-900 dark:text-white tracking-wider">
-                                            {selectedHour.toString().padStart(2, '0')}:{selectedMinute.toString().padStart(2, '0')} {selectedPeriod}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex gap-4 justify-center items-center mb-8">
-                                        {/* Hour Selector */}
-                                        <div className="flex flex-col items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedHour(selectedHour === 12 ? 1 : selectedHour + 1)}
-                                                className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg"
-                                            >
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                                                </svg>
-                                            </button>
-                                            <div className="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-2xl shadow-inner">
-                                                <span className="text-3xl font-bold text-gray-900 dark:text-white">{selectedHour.toString().padStart(2, '0')}</span>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedHour(selectedHour === 1 ? 12 : selectedHour - 1)}
-                                                className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg"
-                                            >
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </button>
-                                        </div>
-
-                                        <span className="text-4xl font-black text-gray-400 self-center">:</span>
-
-                                        {/* Minute Selector */}
-                                        <div className="flex flex-col items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedMinute((selectedMinute + 15) % 60)}
-                                                className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg"
-                                            >
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                                                </svg>
-                                            </button>
-                                            <div className="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-2xl shadow-inner">
-                                                <span className="text-3xl font-bold text-gray-900 dark:text-white">{selectedMinute.toString().padStart(2, '0')}</span>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedMinute(selectedMinute === 0 ? 45 : selectedMinute - 15)}
-                                                className="p-2 hover:bg-[var(--theme-primary)]/10 dark:hover:bg-gray-700 rounded-lg"
-                                            >
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </button>
-                                        </div>
-
-                                        {/* AM/PM Selector */}
-                                        <div className="flex flex-col gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedPeriod('AM')}
-                                                className={`px-4 py-3 rounded-xl font-bold shadow-sm transition ${selectedPeriod === 'AM'
-                                                    ? 'bg-[var(--theme-primary)] text-gray-900'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                                    }`}
-                                            >
-                                                AM
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedPeriod('PM')}
-                                                className={`px-4 py-3 rounded-xl font-bold shadow-sm transition ${selectedPeriod === 'PM'
-                                                    ? 'bg-[var(--theme-primary)] text-gray-900'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                                    }`}
-                                            >
-                                                PM
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPicker(false)}
-                                            className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-white font-bold rounded-xl transition"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleDateTimeSet}
-                                            className="flex-[2] py-3 bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-secondary)] hover:from-[var(--theme-secondary)] hover:to-[var(--theme-tertiary)] text-gray-900 font-black rounded-xl shadow-lg transition"
-                                        >
-                                            Set Date & Time
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 }
